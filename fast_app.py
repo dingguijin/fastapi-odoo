@@ -1,17 +1,18 @@
+import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
 from typing import Optional, List
 from starlette.status import HTTP_201_CREATED, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND
-from pydantic import BaseModel
 
 import odoo
 from odoo.api import Environment
-from odoo.models import Model
-from odoo.exceptions import AccessError, MissingError
+from odoo.exceptions import AccessError, MissingError, AccessDenied
 
-from .odoo_dep import odoo_env
+from odoo_api import odoo_env
+from models import Partner, User
 
-
-app = FastAPI(title="FastAPI-Odoo15 App", description="Make Odoo API")
+app = FastAPI(title="FastAPI-Odoo15 App",
+              description="Make Odoo API",
+              version="0.0.1")
 
 
 @app.on_event("startup")
@@ -30,15 +31,7 @@ def initialize_odoo() -> None:
     odoo.tools.config.parse_config([])
 
 
-class Partner(BaseModel):
-    id: Optional[int]
-    name: str
-    email: Optional[str]
-    is_company: bool = False
-
-    @classmethod
-    def from_res_partner(cls, p: Model) -> "Partner":
-        return Partner(id=p.id, name=p.name, email=p.email, is_company=p.is_company)
+# ------------- partners
 
 
 @app.get("/partners", response_model=List[Partner])
@@ -71,3 +64,24 @@ def create_partner(partner: Partner, env: Environment = Depends(odoo_env)):
         }
     )
     return Partner.from_res_partner(partner)
+
+
+# ------------- user auth
+
+
+@app.post("/users")
+def login_user(user: User, env: Environment = Depends(odoo_env)) -> int:
+    """ TODO:
+        alter env user from SUPERUSER to current user if login successfully
+    """
+    user_cls = env["res.users"]
+    db = env.registry.db_name
+    try:
+        uid = user_cls.authenticate(db=db, login=user.login, password=user.password, user_agent_env=None)
+        return uid
+    except AccessDenied as ad:
+        return {"access_denied": ad.args[0]}
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host="127.0.0.1", port=8000)

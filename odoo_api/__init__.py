@@ -1,1 +1,1 @@
-from .fast_app import app
+from .odoo_dep import odoo_env
