@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 from starlette.status import HTTP_201_CREATED, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND
 
@@ -10,9 +11,20 @@ from odoo.exceptions import AccessError, MissingError, AccessDenied
 from odoo_api import odoo_env
 from models import Partner, User
 
+origins = ["http://localhost:4200"]
+
 app = FastAPI(title="FastAPI-Odoo15 App",
               description="Make Odoo API",
-              version="0.0.1")
+              version="0.0.1"
+              )
+
+# CORS
+app.add_middleware(CORSMiddleware,
+                   allow_origins=origins,
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"],
+                   )
 
 
 @app.on_event("startup")
@@ -69,16 +81,17 @@ def create_partner(partner: Partner, env: Environment = Depends(odoo_env)):
 # ------------- user auth
 
 
-@app.post("/users")
+@app.post("/login")
 def login_user(user: User, env: Environment = Depends(odoo_env)) -> int:
-    """ TODO:
-        alter env user from SUPERUSER to current user if login successfully
+    """ alter env user from SUPERUSER to current user if login successfully
     """
     user_cls = env["res.users"]
     db = env.registry.db_name
     try:
-        uid = user_cls.authenticate(db=db, login=user.login, password=user.password, user_agent_env=None)
-        return uid
+        uid = user_cls.authenticate(db=db, login=user.login, password=user.password, user_agent_env={})
+        env.user = user_cls.browse(uid)
+        session_token = ""
+        return [uid, session_token]
     except AccessDenied as ad:
         return {"access_denied": ad.args[0]}
 
