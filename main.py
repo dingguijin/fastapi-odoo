@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 from starlette.status import HTTP_201_CREATED, HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND
 
+import sys
+sys.path.append('/Users/dingguijin/projects/odoo-15-github/odoo')
+
 import odoo
 from odoo.api import Environment
 from odoo.exceptions import AccessError, MissingError, AccessDenied

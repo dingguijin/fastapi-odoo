@@ -9,10 +9,11 @@ def odoo_env() -> Environment:
     #     locals in an async program.
 
     config = odoo.tools.config
-    config["db_name"] = 'Odoo15_demo'
-    config['db_port'] = 5433
-    config['db_user'] = 'odoo'
-    config['db_password'] = 'odoo'
+    config["db_name"] = 'test-db-2'
+    config["db_host"] = 'localhost'
+    config['db_port'] = 5432
+    config['db_user'] = 'dingguijin'
+    config['db_password'] = ''
 
     # check_signaling() is to refresh the registry and cache when needed.
     registry = odoo.registry(config["db_name"]).check_signaling()
